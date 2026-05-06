@@ -53,3 +53,6 @@ var/
 *.swp
 *.DS_Store
 *.tmp
+
+# Documents
+document/
