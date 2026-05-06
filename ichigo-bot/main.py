@@ -1,45 +1,80 @@
 import discord
+from discord.ext import commands
+from discord import app_commands
 import os
 from dotenv import load_dotenv
 
 import database
+import date_string
 
 database.init_db()
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
+if not TOKEN:
+    raise RuntimeError("DISCORD_TOKEN is not found.")
 
 intents = discord.Intents.default()
 intents.message_content = True
 
-client = discord.Client(intents=intents)
+client = commands.Bot(
+    command_prefix="!",
+    intents=intents,
+)
+tree = client.tree
 
 @client.event
 async def on_ready():
+    await tree.sync()
     print(f"ログイン成功: {client.user}")
+    print(f"次回のいちごつみ歌会開始日時: {date_string.next_sunday_8am_jst()}")
 
 @client.event
 async def on_message(message):
     print(f"from {message.author}: {message.content}")
 
+    # チャンネルIDが事前に指定したいちごつみスレッド以外の場合は何もしない
     if message.channel.id != int(os.getenv("CHANNEL_ID") or 0):
         return
 
+    # このbotが送信したメッセージの場合は何もしない
     if message.author == client.user:
         return
     
-    event_id = None
+    ichigotsumi_id = None
     previous_message_id = None
+    # メッセージが返信の場合、返信元がどの歌会のものかを特定する
     if message.reference is not None:
-        referenced_tanka = database.get_tanka_from_message_id(message.reference.message_id)
-        if referenced_tanka:
-            event_id = referenced_tanka["event_id"]
-            previous_message_id = referenced_tanka["previous_message_id"]
-    else:
-        event_id = database.create_event(None, message.created_at, None)
+        reference_message = database.get_post_from_message_id(message.reference.message_id)
+        if reference_message:
+            ichigotsumi_id = reference_message["ichigotsumi_id"]
+            previous_message_id = reference_message["message_id"]
 
-    database.create_tanka(message.content, message.author.id, message.author.name, message.created_at, event_id, message.id, previous_message_id)
+    # 歌会が特定できない場合は、新規企画歌会を作成する
+    if ichigotsumi_id is None:
+        print("新規歌会を作成します。")
+        ichigotsumi_id = database.create_ichigotsumi(message.author.id, date_string.iso_from_discord(message.created_at), None)
+
+    database.create_post(
+        message.author.id,
+        message.author.name,
+        message.content,
+        date_string.iso_from_discord(message.created_at),
+        ichigotsumi_id,
+        message.id,
+        previous_message_id
+    )
+
+@tree.command(name="ichigo_join", description="いちごつみ当番に参加")
+async def ichigo_join(interaction: discord.Interaction):
+    print(f"参加コマンドが呼び出されました: {interaction.user}")
+
+    await interaction.response.send_message(f"いちごつみ当番に参加しました。")
+
+@tree.command(name="ichigo_unjoin", description="いちごつみ当番から離脱")
+async def ichigo_unjoin(interaction: discord.Interaction):
+    print(f"離脱コマンドが呼び出されました: {interaction.user}")
+
+    await interaction.response.send_message(f"いちごつみ当番から離脱しました。")
 
 client.run(TOKEN)
-
-database.create_event("テスト大会", "2026-05-03", "2026-05-10")
