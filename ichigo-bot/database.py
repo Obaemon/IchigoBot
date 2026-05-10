@@ -78,3 +78,45 @@ def get_post_from_message_id(message_id):
 
     conn.close()
     return post
+
+# 当番リストに登録する
+def set_leader(user_id, user_name):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """INSERT INTO leaders (user_id, user_name) VALUES (?, ?) 
+        ON CONFLICT(user_id) DO
+        UPDATE SET user_name = excluded.user_name WHERE leaders.user_name != excluded.user_name""",
+        (user_id, user_name)
+    )
+
+    cur.execute("SELECT * FROM leaders")
+    print("CHECK 当番リスト")
+    print(cur.fetchall())
+
+    conn.commit()
+    conn.close()
+
+# 当番リストを取得する
+def get_leaders():
+    conn = get_connection()
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM leaders")
+    leaders = cur.fetchall()
+
+    conn.close()
+    return leaders
+
+# 当番リストから削除する
+def delete_leader(user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM leaders WHERE user_id = ?", (user_id,))
+
+    conn.commit()
+    conn.close()
+    return cur.rowcount > 0

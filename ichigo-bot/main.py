@@ -26,12 +26,12 @@ tree = client.tree
 @client.event
 async def on_ready():
     await tree.sync()
-    print(f"ログイン成功: {client.user}")
+    print(f"ログイン成功: {client.user.display_name}")
     print(f"次回のいちごつみ歌会開始日時: {date_string.next_sunday_8am_jst()}")
 
 @client.event
 async def on_message(message):
-    print(f"from {message.author}: {message.content}")
+    print(f"from {message.author.display_name}: {message.content}")
 
     # チャンネルIDが事前に指定したいちごつみスレッド以外の場合は何もしない
     if message.channel.id != int(os.getenv("CHANNEL_ID") or 0):
@@ -57,7 +57,7 @@ async def on_message(message):
 
     database.create_post(
         message.author.id,
-        message.author.name,
+        message.author.display_name,
         message.content,
         date_string.iso_from_discord(message.created_at),
         ichigotsumi_id,
@@ -67,14 +67,33 @@ async def on_message(message):
 
 @tree.command(name="ichigo_join", description="いちごつみ当番に参加")
 async def ichigo_join(interaction: discord.Interaction):
-    print(f"参加コマンドが呼び出されました: {interaction.user}")
+    print(f"参加コマンドが呼び出されました: {interaction.user.id}")
+    leaders = database.get_leaders()
+    print(leaders)
+    leader = next((leader for leader in leaders if leader["user_id"] == str(interaction.user.id)), None)
+    print(leader)
 
-    await interaction.response.send_message(f"いちごつみ当番に参加しました。")
+    if not leader:
+        database.set_leader(interaction.user.id, interaction.user.name)
+        await interaction.response.send_message(f"いちごつみ当番に参加しました。", ephemeral=True)
+        return
+
+    else:
+        if leader["user_name"] != interaction.user.name:
+            database.set_leader(interaction.user.id, interaction.user.name)
+            await interaction.response.send_message(f"当番のユーザー名を更新しました。", ephemeral=True)
+            return
+
+        await interaction.response.send_message(f"すでにいちごつみ当番に参加しています。", ephemeral=True)
 
 @tree.command(name="ichigo_unjoin", description="いちごつみ当番から離脱")
 async def ichigo_unjoin(interaction: discord.Interaction):
-    print(f"離脱コマンドが呼び出されました: {interaction.user}")
+    print(f"離脱コマンドが呼び出されました: {interaction.user.id}")
+    is_deleted = database.delete_leader(interaction.user.id)
 
-    await interaction.response.send_message(f"いちごつみ当番から離脱しました。")
+    if is_deleted:
+        await interaction.response.send_message(f"いちごつみ当番から離脱しました。", ephemeral=True)
+    else:
+        await interaction.response.send_message(f"いちごつみ当番に参加していません。", ephemeral=True)
 
 client.run(TOKEN)
