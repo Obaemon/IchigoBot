@@ -26,8 +26,8 @@ CREATE TABLE IF NOT EXISTS topics (
     ichigotsumi_id INTEGER NOT NULL,
     open_date TEXT NOT NULL,
     close_date TEXT NOT NULL,
-    leader_user_id TEXT NOT NULL,
-    contents TEXT NOT NULL
+    leader_user_id TEXT,
+    contents TEXT
 );
 
 CREATE TABLE IF NOT EXISTS words (

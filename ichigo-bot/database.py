@@ -2,18 +2,23 @@ from datetime import datetime, timezone
 import sqlite3
 
 def get_connection():
-    return sqlite3.connect("tanka.db")
-
-with open("./sql/init.sql") as f:
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.executescript(f.read())
+    return sqlite3.connect("../database/tanka.db")
 
 def init_db():
     conn = get_connection()
     cur = conn.cursor()
 
-    with open("./sql/init.sql") as f:
+    with open("./sql/init.sql", encoding="utf-8") as f:
+        cur.executescript(f.read())
+
+    conn.commit()
+    conn.close()
+
+def reload_words():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    with open("./sql/words.sql", encoding="utf-8") as f:
         cur.executescript(f.read())
 
     conn.commit()
@@ -45,6 +50,16 @@ def get_ichigotsumi_from_id(ichigotsumi_id):
     cur.execute("SELECT * FROM ichigotsumi WHERE id = ?", (ichigotsumi_id,))
     ichigotsumi = cur.fetchone()
 
+    conn.close()
+    return ichigotsumi
+
+# 歌会開始日時から歌会を検索する
+def get_ichigotsumi_from_start_date(start_date):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM ichigotsumi WHERE start_date = ?", (start_date,))
+    ichigotsumi = cur.fetchone()
     conn.close()
     return ichigotsumi
 
@@ -120,3 +135,76 @@ def delete_leader(user_id):
     conn.commit()
     conn.close()
     return cur.rowcount > 0
+
+# お題を最新からn件取得する
+def get_recent_topics(n):
+    conn = get_connection()
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM topics ORDER BY open_date DESC LIMIT ?", (n,))
+    topics = cur.fetchall()
+
+    conn.close()
+    return topics
+
+# 歌会IDからお題を検索する
+def get_topic_from_ichigotsumi_id(ichigotsumi_id):
+    conn = get_connection()
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM topics WHERE ichigotsumi_id = ?", (ichigotsumi_id,))
+    topic = cur.fetchone()
+
+    conn.close()
+    return topic
+
+# 現在受付中のお題を検索する
+def get_topic_opening_now():
+    now = datetime.now(timezone.utc).isoformat()
+
+    conn = get_connection()
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM topics WHERE open_date <= ? AND close_date >= ?", (now, now))
+    topic = cur.fetchone()
+
+    conn.close()
+    return topic
+
+def create_topic(ichigotsumi_id, open_date, close_date, leader_user_id=None):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("INSERT INTO topics (ichigotsumi_id, open_date, close_date, leader_user_id) VALUES (?, ?, ?, ?)", (ichigotsumi_id, open_date, close_date, leader_user_id))
+
+    conn.commit()
+    conn.close()
+
+def update_topic(user_id, contents):
+    now = datetime.now(timezone.utc).isoformat()
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        "UPDATE topics SET contents = ? WHERE open_date >= ? AND close_date <= ? AND leader_user_id = ?",
+        (contents, now, now, user_id)
+    )
+
+    conn.commit()
+    conn.close()
+    return cur.rowcount > 0
+
+def get_word_list():
+    conn = get_connection()
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM words")
+    word_list = cur.fetchall()
+
+    conn.close()
+    return word_list
