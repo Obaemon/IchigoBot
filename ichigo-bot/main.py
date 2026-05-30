@@ -91,9 +91,6 @@ async def start_weekly_ichigotsumi():
     channel = await client.fetch_channel(int(os.getenv("CHANNEL_ID") or 0))
     await channel.send("今週のお題\n\n" + contents)
 
-
-
-
 @client.event
 async def on_ready():
     await tree.sync()
