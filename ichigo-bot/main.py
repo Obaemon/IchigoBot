@@ -29,11 +29,11 @@ client = commands.Bot(
 tree = client.tree
 
 # 日本時間土曜日10時に常設歌会の当番を選出し、常設歌会を設定する
-@tasks.loop(time=time(hour=20, minute=59, tzinfo=timezone(timedelta(hours=9))))
+@tasks.loop(time=time(hour=10, minute=0, tzinfo=timezone(timedelta(hours=9))))
 async def request_weekly_topic():
-    # if datetime.now().weekday() != 5:
-    #     print("曜日判定: False")
-    #     return
+    if datetime.now().weekday() != 5:
+        print("曜日判定: False")
+        return
     
     next_leader = None
     leaders = database.get_leaders()
@@ -71,20 +71,19 @@ async def request_weekly_topic():
     )
 
 # 日本時間日曜日8時に常設歌会を開始する
-@tasks.loop(time=time(hour=20, minute=25, tzinfo=timezone(timedelta(hours=9))))
+@tasks.loop(time=time(hour=8, minute=0, tzinfo=timezone(timedelta(hours=9))))
 async def start_weekly_ichigotsumi():
-    # if datetime.now().weekday() != 6:
-    #     print("曜日判定: False")
-    #     return
+    if datetime.now().weekday() != 6:
+        print("曜日判定: False")
+        return
     
     print("常設歌会を開始します。")
     ichigotsumi = database.get_ichigotsumi_from_start_date(date_string.utc_iso_from_jst(days_ahead=0, hour=8, minute=0, second=0))
-    # if ichigotsumi is None:
-    #     print("常設歌会が見つかりませんでした。")
-    #     return
+    if ichigotsumi is None:
+        print("常設歌会が見つかりませんでした。")
+        return
     
-    # contents = database.get_topic_from_ichigotsumi_id(ichigotsumi["id"])["contents"]
-    contents = None
+    contents = database.get_topic_from_ichigotsumi_id(ichigotsumi["id"])["contents"]
     if contents is None:
         words = database.get_word_list()
         contents = word.filter(words)["word"]
@@ -129,6 +128,7 @@ async def on_message(message):
                 await message.channel.send("お題を設定しました。")
         else:
             await message.channel.send("現在お題を受付しておりません。")
+        return
 
     # チャンネルIDが事前に指定したいちごつみスレッド以外の場合は何もしない
     if message.channel.id != int(os.getenv("CHANNEL_ID") or 0):
