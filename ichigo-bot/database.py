@@ -56,6 +56,7 @@ def get_ichigotsumi_from_id(ichigotsumi_id):
 # 歌会開始日時から歌会を検索する
 def get_ichigotsumi_from_start_date(start_date):
     conn = get_connection()
+    conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
     cur.execute("SELECT * FROM ichigotsumi WHERE start_date = ?", (start_date,))
@@ -76,8 +77,6 @@ def create_post(user_id, user_name, message, post_date, ichigotsumi_id, message_
     )
 
     cur.execute("SELECT * FROM post")
-    print("CHECK 投稿リスト")
-    print(cur.fetchall())
 
     conn.commit()
     conn.close()
@@ -190,7 +189,7 @@ def update_topic(user_id, contents):
     cur = conn.cursor()
 
     cur.execute(
-        "UPDATE topics SET contents = ? WHERE open_date >= ? AND close_date <= ? AND leader_user_id = ?",
+        "UPDATE topics SET contents = ? WHERE open_date <= ? AND close_date >= ? AND leader_user_id = ?",
         (contents, now, now, user_id)
     )
 
