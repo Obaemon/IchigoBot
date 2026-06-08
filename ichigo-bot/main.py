@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import random
 from discord.ext import tasks
 from datetime import time, datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 
 import database
 import date_string
@@ -32,7 +33,7 @@ tree = client.tree
 @tasks.loop(time=time(hour=10, minute=0, tzinfo=timezone(timedelta(hours=9))))
 async def request_weekly_topic():
     print("10 AM TASK STARTED")
-    if datetime.now().weekday() != 5:
+    if datetime.now(ZoneInfo("Asia/Tokyo")).weekday() != 5:
         print("Weekday: False")
         return
     
@@ -76,7 +77,7 @@ async def request_weekly_topic():
 @tasks.loop(time=time(hour=8, minute=0, tzinfo=timezone(timedelta(hours=9))))
 async def start_weekly_ichigotsumi():
     print("8 AM TASK STARTED")
-    if datetime.now().weekday() != 6:
+    if datetime.now(ZoneInfo("Asia/Tokyo")).weekday() != 6:
         print("Weekday: False")
         return
     
