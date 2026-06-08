@@ -33,7 +33,9 @@ tree = client.tree
 @tasks.loop(time=time(hour=10, minute=0, tzinfo=timezone(timedelta(hours=9))))
 async def request_weekly_topic():
     print("10 AM TASK STARTED")
-    if datetime.now(ZoneInfo("Asia/Tokyo")).weekday() != 5:
+    weekday = datetime.now(ZoneInfo("Asia/Tokyo")).weekday()
+    print(f"Weekday: {weekday}")
+    if weekday != 5:
         print("Weekday: False")
         return
     
@@ -77,7 +79,9 @@ async def request_weekly_topic():
 @tasks.loop(time=time(hour=8, minute=0, tzinfo=timezone(timedelta(hours=9))))
 async def start_weekly_ichigotsumi():
     print("8 AM TASK STARTED")
-    if datetime.now(ZoneInfo("Asia/Tokyo")).weekday() != 6:
+    weekday = datetime.now(ZoneInfo("Asia/Tokyo")).weekday()
+    print(f"Weekday: {weekday}")
+    if weekday != 6:
         print("Weekday: False")
         return
     
